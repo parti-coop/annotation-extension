@@ -1,0 +1,1 @@
+chrome://extensions -> developer mode -> load unpacked -> 이 폴더를 선택
