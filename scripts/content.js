@@ -11,8 +11,25 @@ tooltip.id = "my-tooltip";
 tooltip.style.position = 'absolute';
 tooltip.style.top = '0px';
 tooltip.style.left = '0px';
-tooltip.style.backgroundColor = 'rgba(200, 200, 200, 0.9)';
-tooltip.addEventListener("click", annotate);
+tooltip.style.background = 'rgba(160, 109, 61, 0.95)';
+tooltip.style.borderRadius = '5px';
+tooltip.style.border = 'none';
+
+const APIButton = document.createElement("button");
+APIButton.addEventListener("click", annotate);
+APIButton.style.width = '2em';
+APIButton.style.height = '2em';
+APIButton.style.lineHeight = '0';
+APIButton.style.border = 'none';
+APIButton.style.color = 'white';
+tooltip.appendChild(APIButton);
+
+const CTAButton = document.createElement("a");
+CTAButton.href = 'https://datatrust.me';
+CTAButton.target = '_blank';
+CTAButton.innerHTML = '<button style="width: 2em; height: 2em; line-height: 0; border: none">ℹ️</button>'
+tooltip.appendChild(CTAButton);
+
 document.body.appendChild(tooltip);
 hideTooltip();
 
@@ -24,7 +41,9 @@ async function annotate() {
   // console.log(selectionTextFragmentUrl);
   // console.log(selectionRange);
   // console.log(selectionRangeClientRect);
-  tooltip.innerHTML = '제보 중...';
+  APIButton.removeEventListener("click", annotate);
+  // APIButton.disabled = true;
+  APIButton.innerHTML = '…';
   // 추가 고려사항: 반복 클릭 방지, 버튼 디자인 개선
 
   await callAnnotationAPI(selectionText, selectionTextFragmentUrl);
@@ -38,7 +57,7 @@ async function callAnnotationAPI(selectionText, targetUrl) {
       if (!response.ok) {
         throw new Error(`HTTP 오류! 상태: ${response.status}`);
       }
-      tooltip.innerHTML = '제보 완료!';
+      APIButton.innerHTML = '✅';
       setTimeout(hideTooltip, 1000);
       return response.json();
     })
@@ -48,7 +67,9 @@ async function callAnnotationAPI(selectionText, targetUrl) {
 }
 
 // 영역 선택에 반응한다
-document.addEventListener("selectionchange", () => {
+document.addEventListener("selectionchange", onSelectionChange);
+
+function onSelectionChange() {
   selection = document.getSelection();
   // 추가 고려사항: disable 기능 
   if (selection.type === "Range") {
@@ -62,18 +83,23 @@ document.addEventListener("selectionchange", () => {
     selectionRange = selection.getRangeAt(0);
     selectionRangeClientRect = selectionRange.getBoundingClientRect();
 
-    // tooltip.setAttribute('data-selection-text', selectionText);
-    tooltip.style.top = `${Math.max(0, window.pageYOffset + selectionRangeClientRect.top - 30)}px`;
-    tooltip.style.left = `${Math.max(0, window.pageXOffset + selectionRangeClientRect.left + selectionRangeClientRect.width - 50)}px`;
-    tooltip.style.display = 'block';
+    showTooltip();
   } else {
     hideTooltip();
   }
-});
+}
+
+function showTooltip() {
+  tooltip.style.top = `${Math.max(0, window.pageYOffset + selectionRangeClientRect.top - 30)}px`;
+  tooltip.style.left = `${Math.max(0, window.pageXOffset + selectionRangeClientRect.left + selectionRangeClientRect.width - 50)}px`;
+  tooltip.style.display = 'flex';
+}
 
 function hideTooltip() {
   tooltip.style.display = 'none';
-  tooltip.innerHTML = '<button>❔❓❔</button>';
+  APIButton.innerHTML = '❔';
+  APIButton.disabled = false;
+  APIButton.addEventListener("click", annotate);
 }
 
 // EncodeURIComponent에서 escape되지 않는 일부 문자를 추가로 escape해준다
