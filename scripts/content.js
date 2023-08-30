@@ -14,6 +14,7 @@ tooltip.style.left = '0px';
 tooltip.style.background = 'rgba(160, 109, 61, 0.95)';
 tooltip.style.borderRadius = '5px';
 tooltip.style.border = 'none';
+tooltip.style.zIndex = '1000';
 
 const APIButton = document.createElement("button");
 APIButton.addEventListener("click", annotate);
@@ -22,12 +23,15 @@ APIButton.style.height = '2em';
 APIButton.style.lineHeight = '0';
 APIButton.style.border = 'none';
 APIButton.style.color = 'white';
+APIButton.style.backgroundColor = 'transparent';
+APIButton.style.cursor = 'pointer';
 tooltip.appendChild(APIButton);
 
 const CTAButton = document.createElement("a");
 CTAButton.href = 'https://datatrust.me';
 CTAButton.target = '_blank';
-CTAButton.innerHTML = '<button style="width: 2em; height: 2em; line-height: 0; border: none">ℹ️</button>'
+CTAButton.innerHTML = '<button style="width: 2em; height: 2em; line-height: 0; border: none; background-color: transparent; cursor: pointer">ℹ️</button>'
+CTAButton.style.backgroundColor = 'transparent';
 tooltip.appendChild(CTAButton);
 
 document.body.appendChild(tooltip);
@@ -46,14 +50,37 @@ async function annotate() {
   APIButton.innerHTML = '…';
   // 추가 고려사항: 반복 클릭 방지, 버튼 디자인 개선
 
+
+  url = document.URL;
+  // selectionText = encodeURIComponent(selection.toString().trim());
+  selectionText = selection.toString().trim();
+
+  // https://developer.mozilla.org/en-US/docs/Web/Text_fragments
+  // 추가 fail-safe 고려사항: prefix, suffix
+  // selectionTextFragmentUrl = `${url}#:~:text=${fixedEncodeURIComponent(selectionText)}`;
+  selectionTextFragmentUrl = generateTextFragmentUrl(selection);
+
+
+
+
   await callAnnotationAPI(selectionText, selectionTextFragmentUrl);
 }
 
 // API 호출
 async function callAnnotationAPI(selectionText, targetUrl) {
-  const apiUrl = `https://script.google.com/macros/s/AKfycbyRP-5IAyiRhSwzTNtDnaQ9aOcA0g3VAEb9MzxhtfesHajgfpqesv0rt5LWieM5zPRKBg/exec?body=${selectionText}&target=${encodeURIComponent(targetUrl)}`;
+  // const apiUrl = `https://script.google.com/macros/s/AKfycbx1EGLS2PN7FMtD28bctj-MCXBkVsqrsrjrZ2IBBlorTANLidq3NvAxOSNLfIxuiP86MQ/exec?body=${selectionText}&target=${encodeURIComponent(targetUrl)}`;
+  const apiUrl = `https://script.google.com/macros/s/AKfycbzykXwuGzldxZQYh1E6C1v_UQuwhoyjSjrAJ-7sbC4WOTFyk6Gbp3HFCX0Dd1G6z-4BuA/exec`;
   // const req = new Request(apiUrl);
-  fetch(apiUrl, {method: 'POST'}).then((response) => {
+  fetch(
+    apiUrl, 
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        body: selectionText,
+        target: targetUrl
+      })
+    }
+    ).then((response) => {
       if (!response.ok) {
         throw new Error(`HTTP 오류! 상태: ${response.status}`);
       }
@@ -69,20 +96,36 @@ async function callAnnotationAPI(selectionText, targetUrl) {
 // 영역 선택에 반응한다
 document.addEventListener("selectionchange", onSelectionChange);
 
+// function onSelectionChange() {
+//   selection = document.getSelection();
+//   // 추가 고려사항: disable 기능 
+//   if (selection.type === "Range") {
+//     url = document.URL;
+//     selectionText = selection.toString().trim();
+//     selectionText = fixedEncodeURIComponent(selectionText);
+
+//     // https://developer.mozilla.org/en-US/docs/Web/Text_fragments
+//     // 추가 fail-safe 고려사항: prefix, suffix
+//     selectionTextFragmentUrl = `${url}#:~:text=${fixedEncodeURIComponent(selectionText)}`;
+
+//     selectionRange = selection.getRangeAt(0);
+//     selectionRangeClientRect = selectionRange.getBoundingClientRect();
+
+//     showTooltip();
+//   } else {
+//     hideTooltip();
+//   }
+// }
+
 function onSelectionChange() {
-  selection = document.getSelection();
+  selection = window.getSelection();
+  if (!selection) {
+    return;
+  }
   // 추가 고려사항: disable 기능 
   if (selection.type === "Range") {
-    url = document.URL;
-    selectionText = selection.toString().trim();
-
-    // https://developer.mozilla.org/en-US/docs/Web/Text_fragments
-    // 추가 fail-safe 고려사항: prefix, suffix
-    selectionTextFragmentUrl = `${url}#:~:text=${fixedEncodeURIComponent(selectionText)}`;
-
     selectionRange = selection.getRangeAt(0);
     selectionRangeClientRect = selectionRange.getBoundingClientRect();
-
     showTooltip();
   } else {
     hideTooltip();
@@ -110,3 +153,26 @@ function fixedEncodeURIComponent(str) {
     return '%' + c.charCodeAt(0).toString(16);
   });
 }
+
+const generateTextFragmentUrl = (selection) => {
+  const result = globalThis.generateFragment(selection);
+
+  if (result.status === 0) {
+    let fragmentUrl = `${location.origin}${location.pathname}${location.search}`;
+    const fragment = result.fragment;
+    const prefix = fragment.prefix ?
+      `${encodeURIComponent(fragment.prefix)}-,` :
+      '';
+    const suffix = fragment.suffix ?
+      `,-${encodeURIComponent(fragment.suffix)}` :
+      '';
+    const start = encodeURIComponent(fragment.textStart);
+    const end = fragment.textEnd ?
+      `,${encodeURIComponent(fragment.textEnd)}` :
+      '';
+    fragmentUrl += `#:~:text=${prefix}${start}${end}${suffix}`;
+
+    return fragmentUrl;
+  }
+
+};

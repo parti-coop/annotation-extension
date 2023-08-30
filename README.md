@@ -34,6 +34,7 @@
 - [ ] 툴팁/버튼 디자인 개선
 - [x] 버튼 반복 클릭 방지
 - [ ] selectionchange 이벤트 말고 mouseup에서 툴팁 등장?
+- [ ] input, textarea 등에서 툴팁 등장하지 않도록 할 것
 
 데이터 품질 보장
 - [ ] Text fragment에 prefix/suffix 지정
