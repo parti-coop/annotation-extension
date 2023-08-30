@@ -57,11 +57,12 @@ async function annotate() {
 
   // https://developer.mozilla.org/en-US/docs/Web/Text_fragments
   // 추가 fail-safe 고려사항: prefix, suffix
-  // selectionTextFragmentUrl = `${url}#:~:text=${fixedEncodeURIComponent(selectionText)}`;
   selectionTextFragmentUrl = generateTextFragmentUrl(selection);
 
-
-
+  // Fallback in case generateTextFragmentUrl returns nothing
+  if (!selectionTextFragmentUrl) {
+    selectionTextFragmentUrl = `${url}#:~:text=${fixedEncodeURIComponent(selectionText)}`;
+  }
 
   await callAnnotationAPI(selectionText, selectionTextFragmentUrl);
 }
